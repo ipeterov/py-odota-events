@@ -32,7 +32,7 @@ class EventGetter:
         try:
             raw = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True);                         
         except CalledProcessError as exc:                                                                                                   
-            pass
+            raise Exception('Couldn\'t get parsed data from parse server: {}'.format(exc))
         else:
             for line in raw.strip('\n').split('\n'):
                 events.append(json.loads(line))
@@ -58,6 +58,12 @@ class EventGetter:
 
         return replay_file
 
+    def process_events(self, events):
+        event_dict = {}
+        for event in events:
+            event_dict.setdefault(event['type'], []).append(event)
+        return event_dict
+
     def get_events(self, match_id, replay_file=None):
         events = self.db.get(str(match_id))
         if events is None:
@@ -65,4 +71,4 @@ class EventGetter:
             events = self.parse_replay(replay_file)
             self.db[str(match_id)] = events
             self.db.sync()
-        return events
+        return self.process_events(events)
